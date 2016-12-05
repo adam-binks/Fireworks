@@ -1,13 +1,18 @@
 import pygame
 import sys
 import random
+import math
 
 from particle import Particle
-from spawner import Sparker
+from sparker import Sparker
 import util
 
-FPS = 144  # can change this to 60 depending on your monitor refresh rate
+FPS = 600  # can lower this to reduce system resource usage
 FADE_RATE = 2 # lower values mean fireworks fade out more slowly
+
+# controls
+FIREWORK_MOUSE_BUTTON = 1  # left click
+SHIMMER_MOUSE_BUTTON = 3   # right click
 
 # colours
 BLACK = [0, 0, 0]
@@ -50,18 +55,41 @@ def runGame():
 # click to spawn fireworks, escape to quit
 def handleInput():
     for event in pygame.event.get():
+        # terminate on system quit or esc key
         if event.type == pygame.QUIT or pygame.key.get_pressed()[pygame.K_ESCAPE]:
+            pygame.quit()
             sys.exit()
+
+        # spawn fireworks on click
         if event.type == pygame.MOUSEBUTTONDOWN:
-            Sparker(pos=list(pygame.mouse.get_pos()),
-                    colour=[random.uniform(0, 255),
-                            random.uniform(0, 255),
-                            random.uniform(0, 255)],
-                    velocity=random.uniform(40, 60),
-                    particleSize=10, sparsity=random.uniform(0.05, 0.15),
-                    hasTrail=random.uniform(0, 1) < 0.3,
-                    lifetime=random.uniform(10, 20),
-                    )
+
+            if event.button == FIREWORK_MOUSE_BUTTON:
+                Sparker(pos=list(pygame.mouse.get_pos()),
+                        colour=[random.uniform(0, 255),
+                                random.uniform(0, 255),
+                                random.uniform(0, 255)],
+                        velocity=random.uniform(40, 60),
+                        particleSize=random.uniform(10, 20),
+                        sparsity=random.uniform(0.05, 0.15),
+                        hasTrail=True,
+                        lifetime=random.uniform(10, 20),
+                        isShimmer=False)
+
+            if event.button == SHIMMER_MOUSE_BUTTON:
+                Sparker(pos=list(pygame.mouse.get_pos()),
+                        colour=[random.uniform(50, 255),
+                                random.uniform(50, 255),
+                                random.uniform(50, 255)],
+                        velocity=random.uniform(1, 2),
+                        particleSize=random.uniform(3, 8),
+                        sparsity=random.uniform(0.05, 0.15),
+                        hasTrail=False,
+                        lifetime=random.uniform(20, 30),
+                        isShimmer=True,
+                        radius=random.uniform(40, 100),
+                        proportion=0.6,
+                        focusRad=random.choice([0, 0.4, 3, 6]),
+                        weight=random.uniform(0.001, 0.0015))
 
 def main():
     pygame.init()

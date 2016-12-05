@@ -1,10 +1,10 @@
-from particle import Particle
-import random
-import util
 import math
-import pygame
+import random
 
-# The explosion itself
+from particle import Particle
+
+
+# The explosion itself. Spawn a load of particles pointing out from pos
 class Firework:
     def __init__(self, pos, colour, velocity, particleSize, sparsity, hasTrail, lifetime):
         # sparsity is between 0 and 1, higher values mean fewer particles
@@ -30,54 +30,56 @@ class Firework:
                 yDir += sparsity
             xDir += sparsity
 
-# The little shooter that flies up and explodes
-class Sparker:
-    size = 3
-    colour = [80, 20, 20]
-    startVelocity = 100
-    minVelocity = 0
-    gravityPower = 5
+# Spawn particles on a proportion-sized segment of the edge of a circle, with centre and radius
+class ShimmerFirework:
+    accentChance = 0.2
+    def __init__(self, centre, colour, velocity, particleSize, sparsity, radius, proportion,
+                 focusRad, lifetime, weight):
+        # sparsity lies between 0 and 1. Lower values = more particles
+        # proportion lies between 0 and 1. Higher values = larger, more rounded nose of the shimmer firework
+        # focusRad is the direction (in radians) the centre of the shimmer firework is facing
 
-    allSparkers = []
+        # make a little firework too :)
+        Firework(centre, self.darken(colour, 50), 20, particleSize * 3, sparsity, False, 5)
 
-    def __init__(self, pos, colour, velocity, particleSize, sparsity, hasTrail, lifetime):
-        # store firework attributes
-        self.targetPos = pos
-        self.colour = colour
-        self.fwVelocity = velocity
-        self.particleSize = particleSize
-        self.sparsity = sparsity
-        self.hasTrail = hasTrail
-        self.fwLifetime = lifetime
+        accentColour = [colour[1], colour[2], colour[0]]  # accent is just the normal colour with RGBs mixed :)
 
-        # setup sparker to fly in direction of cursor
-        self.pos = [random.uniform(util.SCREEN_SIZE[0] * 1/3, util.SCREEN_SIZE[0] * 2/3),
-                    util.SCREEN_SIZE[1]]
-        rad = math.atan2(self.targetPos[1] - self.pos[1], self.targetPos[0] - self.pos[0])
-        self.direction = [math.cos(rad), math.sin(rad)] # increase y a bit to offset gravity
-        self.velocity = Sparker.startVelocity
+        focus = [centre[0]  +  radius * math.sin(focusRad),
+                 centre[1]  +  radius * math.cos(focusRad)]
+        y = centre[1] - radius/2.0
+        while y < centre[1] + radius/2.0:
+            # find the x coord of this y coord on the circle centred about centre
+            result = radius*radius  -  math.pow(centre[1] - y, 2)
+            x = centre[0]  -  math.sqrt(math.fabs(result)) * -(int(result<0))
 
-        self.surface = pygame.Surface((Sparker.size, Sparker.size))
-        self.surface.fill(Sparker.colour)
+            # only spawn a particle if [x, y] is <= proportion*radius away from the focus
+            if math.pow(x - focus[0], 2) + math.pow(y - focus[1], 2) <= math.pow(proportion*radius, 2):
 
-        Sparker.allSparkers.append(self)
+                # is this an accent particle? if so use the accent colour
+                if random.uniform(0, 1) < ShimmerFirework.accentChance:
+                    col = accentColour
+                else:
+                    col = colour
 
-    def update(self, dt):
-        # move
-        for axis in (0, 1):
-            self.pos[axis] += self.direction[axis] * self.velocity * dt
+                Particle(pos=[x, y],
+                         colour=col,
+                         direction=self.getDir(x, y, focus[0], focus[1], radius, 0.4),
+                         velocity=velocity,
+                         size=particleSize,
+                         lifetime=lifetime + random.uniform(-2, 10),
+                         shrink=True,
+                         gravity=weight + random.uniform(-0.01, 0.01))
 
-        # gravity acts
-        self.velocity -= Sparker.gravityPower * dt
+            y += sparsity
 
-        # if above target y or going slowly, time to detonate
-        if self.pos[1] <= self.targetPos[1] or self.velocity < Sparker.minVelocity:
-            self.detonate()
+    # find the [x, y] direction from [fx, fy] to [px, py]
+    def getDir(self, px, py, fx, fy, r, rand):
+        return [((px - fx)/r + random.uniform(-rand, rand))/3, ((py - fy)/r + random.uniform(-rand, rand))/3]
 
-    def draw(self, screen):
-        screen.blit(self.surface, self.pos)
-
-    def detonate(self):
-        Firework(self.pos, self.colour, self.fwVelocity, self.particleSize,
-                 self.sparsity, self.hasTrail, self.fwLifetime)
-        Sparker.allSparkers.remove(self)
+    def darken(self, colour, factor):
+        newCol = []
+        for i in range(len(colour)):
+            newCol.append(colour[i] - factor)
+            if newCol[i] < 0:
+                newCol[i] = 0
+        return newCol

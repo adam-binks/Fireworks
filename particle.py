@@ -4,12 +4,11 @@ import random
 
 # hasTrail is whether this firework has the little different coloured trailer particles too
 class Particle:
-    gravityAmount = 0.005
     allParticles = []
 
     def __init__(self, pos, colour, direction, velocity, size, lifetime,
                  hasTrail=False, shrink=False,
-                 trailColour=None, trailPercent=0.4):
+                 trailColour=None, trailPercent=0.4, gravity=0.005):
         self.pos = [float(pos[0]), float(pos[1])]  # (x, y)
         self.colour = colour
         self.direction = direction  # (x movement, y movement)
@@ -19,6 +18,7 @@ class Particle:
         self.lifetime = lifetime
         self.age = 0
         self.shrink = shrink
+        self.gravity = gravity
 
         self.surface = pygame.Surface((size, size))
         self.surface.fill(self.colour)
@@ -34,7 +34,7 @@ class Particle:
             self.pos[axis] += self.direction[axis] * self.velocity * dt
 
         # gravity acts
-        self.direction[1] += Particle.gravityAmount * dt
+        self.direction[1] += self.gravity * dt
 
         # check if needs to die (off screen or lifetime is over)
         self.age += dt
